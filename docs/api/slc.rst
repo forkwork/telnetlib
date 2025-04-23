@@ -1,5 +1,5 @@
 slc
 ---
 
-.. automodule:: telnetlib3.slc
+.. automodule:: telnetlib.slc
    :members:

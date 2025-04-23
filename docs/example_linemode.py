@@ -8,11 +8,11 @@ import sys
 import pkg_resources
 
 # local
-import telnetlib3
+import telnetlib
 
 
 async def shell(reader, writer):
-    from telnetlib3 import WONT, ECHO
+    from telnetlib import WONT, ECHO
 
     writer.iac(WONT, ECHO)
 
@@ -36,12 +36,12 @@ async def shell(reader, writer):
 
 
 if __name__ == "__main__":
-    kwargs = telnetlib3.parse_server_args()
+    kwargs = telnetlib.parse_server_args()
     kwargs["shell"] = shell
-    telnetlib3.run_server(**kwargs)
+    telnetlib.run_server(**kwargs)
     # sys.argv.append('--shell={
     sys.exit(
         pkg_resources.load_entry_point(
-            "telnetlib3", "console_scripts", "telnetlib3-server"
+            "telnetlib", "console_scripts", "telnetlib-server"
         )()
     )

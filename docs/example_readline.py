@@ -73,7 +73,7 @@ class Lander(object):
         """
         Lander REPL, provides no process, local echo.
         """
-        from telnetlib3 import WONT, ECHO, SGA
+        from telnetlib import WONT, ECHO, SGA
 
         client.writer.iac(WONT, ECHO)
         client.writer.iac(WONT, SGA)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Telnet Client API for the 'telnetlib3' python package.
+Telnet Client API for the 'telnetlib' python package.
 """
 # std imports
 import argparse
@@ -11,8 +11,8 @@ import sys
 import os
 
 # local imports
-from telnetlib3 import accessories
-from telnetlib3 import client_base
+from telnetlib import accessories
+from telnetlib import client_base
 
 __all__ = ("TelnetClient", "TelnetTerminalClient", "open_connection")
 
@@ -68,8 +68,8 @@ class TelnetClient(client_base.BaseClient):
 
     def connection_made(self, transport):
         """Callback for connection made to server."""
-        from telnetlib3.telopt import TTYPE, TSPEED, XDISPLOC, NEW_ENVIRON
-        from telnetlib3.telopt import CHARSET, NAWS
+        from telnetlib.telopt import TTYPE, TSPEED, XDISPLOC, NEW_ENVIRON
+        from telnetlib.telopt import CHARSET, NAWS
 
         super().connection_made(transport)
 
@@ -364,7 +364,7 @@ async def open_connection(
 
 
 async def run_client():
-    """Command-line 'telnetlib3-client' entry point, via setuptools."""
+    """Command-line 'telnetlib-client' entry point, via setuptools."""
     kwargs = _transform_args(_get_argument_parser().parse_args())
     config_msg = "Client configuration: {key_values}".format(
         key_values=accessories.repr_mapping(kwargs)
@@ -403,7 +403,7 @@ def _get_argument_parser():
     )
     parser.add_argument("--logfile", help="filepath")
     parser.add_argument(
-        "--shell", default="telnetlib3.telnet_client_shell", help="module.function_name"
+        "--shell", default="telnetlib.telnet_client_shell", help="module.function_name"
     )
     parser.add_argument("--encoding", default="utf8", help="encoding name")
     parser.add_argument("--speed", default=38400, type=int, help="connection speed")

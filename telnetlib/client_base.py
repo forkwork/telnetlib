@@ -1,88 +1,77 @@
-"""Module provides class BaseServer."""
-import traceback
-import asyncio
+"""Module provides class BaseClient."""
 import logging
 import datetime
+import traceback
+import asyncio
 import weakref
 import sys
 
 from .stream_writer import TelnetWriter, TelnetWriterUnicode
 from .stream_reader import TelnetReader, TelnetReaderUnicode
+from .telopt import name_commands
 
-__all__ = ("BaseServer",)
-
-
-logger = logging.getLogger("telnetlib3.server_base")
+__all__ = ("BaseClient",)
 
 
-class BaseServer(asyncio.streams.FlowControlMixin, asyncio.Protocol):
-    """Base Telnet Server Protocol."""
+class BaseClient(asyncio.streams.FlowControlMixin, asyncio.Protocol):
+    """Base Telnet Client Protocol."""
 
     _when_connected = None
     _last_received = None
     _transport = None
-    _advanced = False
     _closing = False
+    _reader_factory = TelnetReader
+    _reader_factory_encoding = TelnetReaderUnicode
+    _writer_factory = TelnetWriter
+    _writer_factory_encoding = TelnetWriterUnicode
 
     def __init__(
         self,
         shell=None,
-        _waiter_connected=None,
-        _waiter_closed=None,
         encoding="utf8",
         encoding_errors="strict",
         force_binary=False,
+        connect_minwait=1.0,
         connect_maxwait=4.0,
         limit=None,
-        reader_factory=TelnetReader,
-        reader_factory_encoding=TelnetReaderUnicode,
-        writer_factory=TelnetWriter,
-        writer_factory_encoding=TelnetWriterUnicode,
+        waiter_closed=None,
+        _waiter_connected=None,
     ):
         """Class initializer."""
         super().__init__()
+        self.log = logging.getLogger("telnetlib.client")
+
+        #: encoding for new connections
         self.default_encoding = encoding
         self._encoding_errors = encoding_errors
         self.force_binary = force_binary
         self._extra = dict()
-
-        self._reader_factory = reader_factory
-        self._reader_factory_encoding = reader_factory_encoding
-        self._writer_factory = writer_factory
-        self._writer_factory_encoding = writer_factory_encoding
-
+        self.waiter_closed = waiter_closed or asyncio.Future()
         #: a future used for testing
         self._waiter_connected = _waiter_connected or asyncio.Future()
-        #: a future used for testing
-        self._waiter_closed = _waiter_closed or asyncio.Future()
-        self._tasks = [self._waiter_connected]
+        self._tasks = []
         self.shell = shell
-        self.reader = None
-        self.writer = None
+        #: minimum duration for :meth:`check_negotiation`.
+        self.connect_minwait = connect_minwait
         #: maximum duration for :meth:`check_negotiation`.
         self.connect_maxwait = connect_maxwait
+        self.reader = None
+        self.writer = None
         self._limit = limit
-
-    def timeout_connection(self):
-        self.reader.feed_eof()
-        self.writer.close()
 
     # Base protocol methods
 
     def eof_received(self):
-        """
-        Called when the other end calls write_eof() or equivalent.
-
-        This callback may be exercised by the nc(1) client argument ``-z``.
-        """
-        logger.debug("EOF from client, closing.")
+        """Called when the other end calls write_eof() or equivalent."""
+        self.log.debug("EOF from server, closing.")
         self.connection_lost(None)
 
     def connection_lost(self, exc):
         """
         Called when the connection is lost or closed.
 
-        :param Exception exc: exception.  ``None`` indicates close by EOF.
+        :param Exception exc: exception.  ``None`` indicates
+            a closing EOF sent by this end.
         """
         if self._closing:
             return
@@ -90,23 +79,30 @@ class BaseServer(asyncio.streams.FlowControlMixin, asyncio.Protocol):
 
         # inform yielding readers about closed connection
         if exc is None:
-            logger.info("Connection closed for %s", self)
+            self.log.info("Connection closed to %s", self)
             self.reader.feed_eof()
         else:
-            logger.info("Connection lost for %s: %s", self, exc)
+            self.log.info("Connection lost to %s: %s", self, exc)
             self.reader.set_exception(exc)
 
         # cancel protocol tasks, namely on-connect negotiations
         for task in self._tasks:
             task.cancel()
 
-        # close transport (may already be closed), set _waiter_closed and
+        # close transport (may already be closed), set waiter_closed and
         # cancel Future _waiter_connected.
         self._transport.close()
-        self._waiter_connected.cancel()
-        if self.shell is None and self._waiter_closed is not None:
-            # raise deprecation warning, _waiter_closed should not be used!
-            self._waiter_closed.set_result(weakref.proxy(self))
+        if not self._waiter_connected.done():
+            # strangely, for symmetry, our '_waiter_connected' must be set if
+            # we are disconnected before negotiation may be considered
+            # complete.  We set waiter_closed, and any function consuming
+            # the StreamReader will receive eof.
+            self._waiter_connected.set_result(weakref.proxy(self))
+
+        if self.shell is None:
+            # when a shell is defined, we allow the completion of the coroutine
+            # to set the result of waiter_closed.
+            self.waiter_closed.set_result(weakref.proxy(self))
 
         # break circular references.
         self._transport = None
@@ -114,9 +110,6 @@ class BaseServer(asyncio.streams.FlowControlMixin, asyncio.Protocol):
     def connection_made(self, transport):
         """
         Called when a connection is made.
-
-        Sets attributes ``_transport``, ``_when_connected``, ``_last_received``,
-        ``reader`` and ``writer``.
 
         Ensure ``super().connection_made(transport)`` is called when derived.
         """
@@ -126,6 +119,7 @@ class BaseServer(asyncio.streams.FlowControlMixin, asyncio.Protocol):
 
         reader_factory = self._reader_factory
         writer_factory = self._writer_factory
+
         reader_kwds = {}
         writer_kwds = {}
 
@@ -146,11 +140,11 @@ class BaseServer(asyncio.streams.FlowControlMixin, asyncio.Protocol):
             transport=transport,
             protocol=self,
             reader=self.reader,
-            server=True,
+            client=True,
             **writer_kwds
         )
 
-        logger.info("Connection from %s", self)
+        self.log.info("Connected to %s", self)
 
         self._waiter_connected.add_done_callback(self.begin_shell)
         asyncio.get_event_loop().call_soon(self.begin_negotiation)
@@ -159,13 +153,21 @@ class BaseServer(asyncio.streams.FlowControlMixin, asyncio.Protocol):
         if self.shell is not None:
             coro = self.shell(self.reader, self.writer)
             if asyncio.iscoroutine(coro):
+                # When a shell is defined as a coroutine, we must ensure
+                # that self.waiter_closed is not closed until the shell
+                # has had an opportunity to respond to EOF.  Because
+                # feed_eof() occurs in connection_lost(), we must allow
+                # the event loop to return to our shell coroutine before
+                # the waiter_closed future is set.
+                #
+                # We accomplish this by chaining the completion of the
+                # shell future to set the result of the waiter_closed
+                # future.
                 fut = asyncio.get_event_loop().create_task(coro)
                 fut.add_done_callback(
-                    lambda fut_obj: (
-                        self._waiter_closed.set_result(weakref.proxy(self))
-                        if self._waiter_closed is not None
-                        else None
-                    )
+                    lambda fut_obj: self.waiter_closed.set_result(weakref.proxy(self))
+                    if self.waiter_closed is not None
+                    else None
                 )
 
     def data_received(self, data):
@@ -182,7 +184,7 @@ class BaseServer(asyncio.streams.FlowControlMixin, asyncio.Protocol):
             try:
                 recv_inband = self.writer.feed_byte(bytes([byte]))
             except:
-                self._log_exception(logger.warning, *sys.exc_info())
+                self._log_exception(self.log.warning, *sys.exc_info())
             else:
                 if recv_inband:
                     # forward to reader (shell).
@@ -215,7 +217,7 @@ class BaseServer(asyncio.streams.FlowControlMixin, asyncio.Protocol):
         return "<Peer {0} {1}>".format(*hostport)
 
     def get_extra_info(self, name, default=None):
-        """Get optional server protocol or transport information."""
+        """Get optional client protocol or transport information."""
         if self._transport:
             default = self._transport._extra.get(name, default)
         return self._extra.get(name, default)
@@ -224,55 +226,27 @@ class BaseServer(asyncio.streams.FlowControlMixin, asyncio.Protocol):
         """
         Begin on-connect negotiation.
 
-        A Telnet server is expected to demand preferred session options
-        immediately after connection.  Deriving implementations should always
-        call ``super().begin_negotiation()``.
+        A Telnet client is expected to send only a minimal amount of client
+        session options immediately after connection, it is generally the
+        server which dictates server option support.
+
+        Deriving implementations should always call
+        ``super().begin_negotiation()``.
         """
         self._check_later = asyncio.get_event_loop().call_soon(
             self._check_negotiation_timer
         )
         self._tasks.append(self._check_later)
 
-    def begin_advanced_negotiation(self):
-        """
-        Begin advanced negotiation.
-
-        Callback method further requests advanced telnet options.  Called
-        once on receipt of any ``DO`` or ``WILL`` acknowledgments
-        received, indicating that the remote end is capable of negotiating
-        further.
-
-        Only called if sub-classing :meth:`begin_negotiation` causes
-        at least one negotiation option to be affirmatively acknowledged.
-        """
-        pass
-
     def encoding(self, outgoing=False, incoming=False):
         """
         Encoding that should be used for the direction indicated.
 
-        The base implementation **always** returns the encoding given to class
-        initializer, or, when unset (None), ``US-ASCII``.
+        The base implementation **always** returns ``encoding`` argument
+        given to class initializer or, when unset (``None``), ``US-ASCII``.
         """
         # pylint: disable=unused-argument
-        return self.default_encoding or "US-ASCII"
-
-    def negotiation_should_advance(self):
-        """
-        Whether advanced negotiation should commence.
-
-        :rtype: bool
-        :returns: True if advanced negotiation should be permitted.
-
-        The base implementation returns True if any negotiation options
-        were affirmatively acknowledged by client, more than likely
-        options requested in callback :meth:`begin_negotiation`.
-        """
-        # Generally, this separates a bare TCP connect() from a True
-        # RFC-compliant telnet client with responding IAC interpreter.
-        server_do = sum(enabled for _, enabled in self.writer.remote_option.items())
-        client_will = sum(enabled for _, enabled in self.writer.local_option.items())
-        return bool(server_do or client_will)
+        return self.default_encoding or "US-ASCII"  # pragma: no cover
 
     def check_negotiation(self, final=False):
         """
@@ -280,24 +254,33 @@ class BaseServer(asyncio.streams.FlowControlMixin, asyncio.Protocol):
 
         :param bool final: Whether this is the final time this callback
             will be requested to answer regarding protocol negotiation.
-        :returns: Whether negotiation is over (server end is satisfied).
+        :returns: Whether negotiation is over (client end is satisfied).
         :rtype: bool
 
         Method is called on each new command byte processed until negotiation is
-        considered final, or after ``connect_maxwait`` has elapsed, setting
-        attribute ``_waiter_connected`` to value ``self`` when complete.
+        considered final, or after :attr:`connect_maxwait` has elapsed, setting
+        the ``_waiter_connected`` attribute to value ``self`` when complete.
+
+        This method returns False until :attr:`connect_minwait` has elapsed,
+        ensuring the server may batch telnet negotiation demands without
+        prematurely entering the callback shell.
 
         Ensure ``super().check_negotiation()`` is called and conditionally
         combined when derived.
         """
-        if not self._advanced and self.negotiation_should_advance():
-            self._advanced = True
-            logger.debug("begin advanced negotiation")
-            asyncio.get_event_loop().call_soon(self.begin_advanced_negotiation)
-
-        # negotiation is complete (returns True) when all negotiation options
-        # that have been requested have been acknowledged.
-        return not any(self.writer.pending_option.values())
+        return (
+            not any(self.writer.pending_option.values())
+            and
+            # This particular state check is interesting; what we're trying
+            # to allow is a period of time where the server may chose to
+            # make demands in batches.  Let us allow our protocol
+            # negotiation enough time for such demands to be received.
+            #
+            # A better measurement of would be to use something like TM
+            # (timing-mark) to measure the round-trip time, and double it
+            # for this value.
+            self.duration > self.connect_minwait
+        )
 
     # private methods
 
@@ -309,13 +292,24 @@ class BaseServer(asyncio.streams.FlowControlMixin, asyncio.Protocol):
         final = bool(later < 0)
 
         if self.check_negotiation(final=final):
-            logger.debug("negotiation complete after {:1.2f}s.".format(self.duration))
+            self.log.debug("negotiation complete after {:1.2f}s.".format(self.duration))
             self._waiter_connected.set_result(weakref.proxy(self))
         elif final:
-            logger.debug("negotiation failed after {:1.2f}s.".format(self.duration))
+            self.log.debug("negotiation failed after {:1.2f}s.".format(self.duration))
+            _failed = [
+                name_commands(cmd_option)
+                for (cmd_option, pending) in self.writer.pending_option.items()
+                if pending
+            ]
+            self.log.debug("failed-reply: {0!r}".format(", ".join(_failed)))
             self._waiter_connected.set_result(weakref.proxy(self))
         else:
-            # keep re-queuing until complete
+            # keep re-queuing until complete.  Aggressively re-queue until
+            # connect_minwait, or connect_maxwait, whichever occurs next
+            # in our time-series.
+            sooner = self.connect_minwait - self.duration
+            if sooner > 0:
+                later = sooner
             self._check_later = asyncio.get_event_loop().call_later(
                 later, self._check_negotiation_timer
             )

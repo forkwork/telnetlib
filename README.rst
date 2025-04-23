@@ -1,20 +1,20 @@
-.. image:: https://coveralls.io/repos/jquast/telnetlib3/badge.svg?branch=master&service=github
+.. image:: https://coveralls.io/repos/jquast/telnetlib/badge.svg?branch=master&service=github
     :alt: Coveralls Code Coverage
-    :target: https://coveralls.io/github/jquast/telnetlib3?branch=master
+    :target: https://coveralls.io/github/jquast/telnetlib?branch=master
 
-.. image:: https://img.shields.io/pypi/v/telnetlib3.svg
+.. image:: https://img.shields.io/pypi/v/telnetlib.svg
     :alt: Latest Version
-    :target: https://pypi.python.org/pypi/telnetlib3
+    :target: https://pypi.python.org/pypi/telnetlib
 
-.. image:: https://img.shields.io/pypi/dm/telnetlib3.svg
+.. image:: https://img.shields.io/pypi/dm/telnetlib.svg
     :alt: Downloads
-    :target: https://pypi.python.org/pypi/telnetlib3
+    :target: https://pypi.python.org/pypi/telnetlib
 
 
 Introduction
 ============
 
-telnetlib3 is a Telnet Client and Server library for python.  This project
+telnetlib is a Telnet Client and Server library for python.  This project
 requires python 3.7 and later, using the asyncio_ module.
 
 .. _asyncio: http://docs.python.org/3.11/library/asyncio.html
@@ -26,7 +26,7 @@ Authoring a Telnet Server using Streams interface that offers a basic war game:
 
 .. code-block:: python
 
-    import asyncio, telnetlib3
+    import asyncio, telnetlib
 
     async def shell(reader, writer):
         writer.write('\r\nWould you like to play a game? ')
@@ -39,7 +39,7 @@ Authoring a Telnet Server using Streams interface that offers a basic war game:
         writer.close()
 
     loop = asyncio.get_event_loop()
-    coro = telnetlib3.create_server(port=6023, shell=shell)
+    coro = telnetlib.create_server(port=6023, shell=shell)
     server = loop.run_until_complete(coro)
     loop.run_until_complete(server.wait_closed())
 
@@ -47,7 +47,7 @@ Authoring a Telnet Client that plays the war game with this server:
 
 .. code-block:: python
 
-    import asyncio, telnetlib3
+    import asyncio, telnetlib
 
     async def shell(reader, writer):
         while True:
@@ -67,7 +67,7 @@ Authoring a Telnet Client that plays the war game with this server:
         print()
 
     loop = asyncio.get_event_loop()
-    coro = telnetlib3.open_connection('localhost', 6023, shell=shell)
+    coro = telnetlib.open_connection('localhost', 6023, shell=shell)
     reader, writer = loop.run_until_complete(coro)
     loop.run_until_complete(writer.protocol.waiter_closed)
 
@@ -76,16 +76,16 @@ Command-line
 
 Two command-line scripts are distributed with this package.
 
-``telnetlib3-client``
+``telnetlib-client``
 
   Small terminal telnet client.  Some example destinations and options::
 
-    telnetlib3-client nethack.alt.org
-    telnetlib3-client --encoding=cp437 --force-binary blackflag.acid.org
-    telnetlib3-client htc.zapto.org
+    telnetlib-client nethack.alt.org
+    telnetlib-client --encoding=cp437 --force-binary blackflag.acid.org
+    telnetlib-client htc.zapto.org
 
 
-``telnetlib3-server``
+``telnetlib-server``
 
   Telnet server providing the default debugging shell.  This provides a simple
   shell server that allows introspection of the session's values, for example::
@@ -170,4 +170,4 @@ The following RFC specifications are implemented:
 Further Reading
 ---------------
 
-Further documentation available at https://telnetlib3.readthedocs.org/
+Further documentation available at https://telnetlib.readthedocs.org/

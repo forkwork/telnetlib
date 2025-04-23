@@ -3,9 +3,9 @@
 import asyncio
 
 # local imports
-import telnetlib3
-import telnetlib3.stream_writer
-from telnetlib3.tests.accessories import unused_tcp_port, bind_host
+import telnetlib
+import telnetlib.stream_writer
+from telnetlib.tests.accessories import unused_tcp_port, bind_host
 
 # 3rd party
 import pytest
@@ -14,17 +14,17 @@ import pytest
 async def test_telnet_server_on_charset(bind_host, unused_tcp_port):
     """Test Server's callback method on_charset()."""
     # given
-    from telnetlib3.telopt import IAC, WILL, WONT, SB, SE, TTYPE, CHARSET, ACCEPTED
+    from telnetlib.telopt import IAC, WILL, WONT, SB, SE, TTYPE, CHARSET, ACCEPTED
 
     _waiter = asyncio.Future()
     given_charset = "KOI8-U"
 
-    class ServerTestCharset(telnetlib3.TelnetServer):
+    class ServerTestCharset(telnetlib.TelnetServer):
         def on_charset(self, charset):
             super().on_charset(charset)
             _waiter.set_result(self)
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         protocol_factory=ServerTestCharset, host=bind_host, port=unused_tcp_port
     )
 
@@ -48,25 +48,25 @@ async def test_telnet_client_send_charset(bind_host, unused_tcp_port):
     # given
     _waiter = asyncio.Future()
 
-    class ServerTestCharset(telnetlib3.TelnetServer):
+    class ServerTestCharset(telnetlib.TelnetServer):
         def on_request_charset(self):
             return ["illegal", "cp437"]
 
-    class ClientTestCharset(telnetlib3.TelnetClient):
+    class ClientTestCharset(telnetlib.TelnetClient):
         def send_charset(self, offered):
             selected = super().send_charset(offered)
             _waiter.set_result(selected)
             return selected
 
     await asyncio.wait_for(
-        telnetlib3.create_server(
+        telnetlib.create_server(
             protocol_factory=ServerTestCharset, host=bind_host, port=unused_tcp_port
         ),
         0.15,
     )
 
     reader, writer = await asyncio.wait_for(
-        telnetlib3.open_connection(
+        telnetlib.open_connection(
             client_factory=ClientTestCharset,
             host=bind_host,
             port=unused_tcp_port,
@@ -86,23 +86,23 @@ async def test_telnet_client_no_charset(bind_host, unused_tcp_port):
     # given
     _waiter = asyncio.Future()
 
-    class ServerTestCharset(telnetlib3.TelnetServer):
+    class ServerTestCharset(telnetlib.TelnetServer):
         def on_request_charset(self):
             return ["illegal", "this-is-no-good-either"]
 
-    class ClientTestCharset(telnetlib3.TelnetClient):
+    class ClientTestCharset(telnetlib.TelnetClient):
         def send_charset(self, offered):
             selected = super().send_charset(offered)
             _waiter.set_result(selected)
             return selected
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         protocol_factory=ServerTestCharset,
         host=bind_host,
         port=unused_tcp_port,
     )
 
-    reader, writer = await telnetlib3.open_connection(
+    reader, writer = await telnetlib.open_connection(
         client_factory=ClientTestCharset,
         host=bind_host,
         port=unused_tcp_port,

@@ -1,6 +1,6 @@
 """
 The ``main`` function here is wired to the command line tool by name
-telnetlib3-server.  If this server's PID receives the SIGTERM signal, it
+telnetlib-server.  If this server's PID receives the SIGTERM signal, it
 attempts to shutdown gracefully.
 
 The :class:`TelnetServer` class negotiates a character-at-a-time (WILL-SGA,
@@ -41,13 +41,13 @@ CONFIG = collections.namedtuple(
     loglevel="info",
     logfile=None,
     logfmt=accessories._DEFAULT_LOGFMT,
-    shell=accessories.function_lookup("telnetlib3.telnet_server_shell"),
+    shell=accessories.function_lookup("telnetlib.telnet_server_shell"),
     encoding="utf8",
     force_binary=False,
     timeout=300,
     connect_maxwait=4.0,
 )
-logger = logging.getLogger("telnetlib3.server")
+logger = logging.getLogger("telnetlib.server")
 
 
 class TelnetServer(server_base.BaseServer):
@@ -582,7 +582,7 @@ async def run_server(
     SIGTERM.
     """
     log = accessories.make_logger(
-        name="telnetlib3.server", loglevel=loglevel, logfile=logfile, logfmt=logfmt
+        name="telnetlib.server", loglevel=loglevel, logfile=logfile, logfmt=logfmt
     )
 
     # log all function arguments.

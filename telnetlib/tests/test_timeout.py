@@ -4,9 +4,9 @@ import asyncio
 import time
 
 # local imports
-import telnetlib3
-import telnetlib3.stream_writer
-from telnetlib3.tests.accessories import unused_tcp_port, bind_host
+import telnetlib
+import telnetlib.stream_writer
+from telnetlib.tests.accessories import unused_tcp_port, bind_host
 
 # 3rd party
 import pytest
@@ -14,13 +14,13 @@ import pytest
 
 async def test_telnet_server_default_timeout(bind_host, unused_tcp_port):
     """Test callback on_timeout() as coroutine of create_server()."""
-    from telnetlib3.telopt import IAC, WONT, TTYPE
+    from telnetlib.telopt import IAC, WONT, TTYPE
 
     # given,
     _waiter = asyncio.Future()
     given_timeout = 19.29
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         _waiter_connected=_waiter,
         host=bind_host,
         port=unused_tcp_port,
@@ -41,13 +41,13 @@ async def test_telnet_server_default_timeout(bind_host, unused_tcp_port):
 
 async def test_telnet_server_set_timeout(bind_host, unused_tcp_port):
     """Test callback on_timeout() as coroutine of create_server()."""
-    from telnetlib3.telopt import IAC, WONT, TTYPE
+    from telnetlib.telopt import IAC, WONT, TTYPE
 
     # given,
     _waiter = asyncio.Future()
 
     # exercise,
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         _waiter_connected=_waiter, host=bind_host, port=unused_tcp_port
     )
 
@@ -69,12 +69,12 @@ async def test_telnet_server_set_timeout(bind_host, unused_tcp_port):
 
 async def test_telnet_server_waitfor_timeout(bind_host, unused_tcp_port):
     """Test callback on_timeout() as coroutine of create_server()."""
-    from telnetlib3.telopt import IAC, DO, WONT, TTYPE
+    from telnetlib.telopt import IAC, DO, WONT, TTYPE
 
     # given,
     expected_output = IAC + DO + TTYPE + b"\r\nTimeout.\r\n"
 
-    await telnetlib3.create_server(host=bind_host, port=unused_tcp_port, timeout=0.050)
+    await telnetlib.create_server(host=bind_host, port=unused_tcp_port, timeout=0.050)
 
     reader, writer = await asyncio.open_connection(host=bind_host, port=unused_tcp_port)
 

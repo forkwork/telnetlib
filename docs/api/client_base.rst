@@ -1,5 +1,5 @@
 client_base
 -----------
 
-.. automodule:: telnetlib3.client_base
+.. automodule:: telnetlib.client_base
    :members:

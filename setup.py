@@ -14,22 +14,22 @@ def _get_long_description(fname, encoding="utf8"):
 
 setup(
     name="telnetlib",
-    version="2.0.4",  # keep in sync with docs/conf.py and telnetlib3/accessories.py !!
-    url="http://telnetlib3.rtfd.org/",
+    version="2.0.4",  # keep in sync with docs/conf.py and telnetlib/accessories.py !!
+    url="http://telnetlib.rtfd.org/",
     license="ISC",
     author="Jeff Quast",
     description="Python 3 asyncio Telnet server and client Protocol library",
     long_description=_get_long_description(fname=_get_here("README.rst")),
     # requires python 3.7 and greater beginning with 2.0.0 release
     python_requires=">=3.7",
-    packages=["telnetlib3"],
+    packages=["telnetlib"],
     package_data={
         "": ["README.rst", "requirements.txt"],
     },
     entry_points={
         "console_scripts": [
-            "telnetlib3-server = telnetlib3.server:main",
-            "telnetlib3-client = telnetlib3.client:main",
+            "telnetlib-server = telnetlib.server:main",
+            "telnetlib-client = telnetlib.client:main",
         ]
     },
     author_email="contact@jeffquast.com",

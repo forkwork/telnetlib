@@ -3,9 +3,9 @@
 import asyncio
 
 # local imports
-import telnetlib3
-import telnetlib3.stream_writer
-from telnetlib3.tests.accessories import unused_tcp_port, bind_host
+import telnetlib
+import telnetlib.stream_writer
+from telnetlib.tests.accessories import unused_tcp_port, bind_host
 
 # 3rd party
 import pytest
@@ -14,17 +14,17 @@ import pytest
 async def test_telnet_server_on_xdisploc(bind_host, unused_tcp_port):
     """Test Server's callback method on_xdisploc()."""
     # given
-    from telnetlib3.telopt import IAC, WILL, SB, SE, IS, XDISPLOC
+    from telnetlib.telopt import IAC, WILL, SB, SE, IS, XDISPLOC
 
     _waiter = asyncio.Future()
     given_xdisploc = "alpha:0"
 
-    class ServerTestXdisploc(telnetlib3.TelnetServer):
+    class ServerTestXdisploc(telnetlib.TelnetServer):
         def on_xdisploc(self, xdisploc):
             super().on_xdisploc(xdisploc)
             _waiter.set_result(self)
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         protocol_factory=ServerTestXdisploc, host=bind_host, port=unused_tcp_port
     )
 
@@ -45,22 +45,22 @@ async def test_telnet_client_send_xdisploc(bind_host, unused_tcp_port):
     _waiter = asyncio.Future()
     given_xdisploc = "alpha"
 
-    class ServerTestXdisploc(telnetlib3.TelnetServer):
+    class ServerTestXdisploc(telnetlib.TelnetServer):
         def on_xdisploc(self, xdisploc):
             super().on_xdisploc(xdisploc)
             _waiter.set_result(xdisploc)
 
         def begin_advanced_negotiation(self):
-            from telnetlib3.telopt import DO, XDISPLOC
+            from telnetlib.telopt import DO, XDISPLOC
 
             super().begin_advanced_negotiation()
             self.writer.iac(DO, XDISPLOC)
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         protocol_factory=ServerTestXdisploc, host=bind_host, port=unused_tcp_port
     )
 
-    reader, writer = await telnetlib3.open_connection(
+    reader, writer = await telnetlib.open_connection(
         host=bind_host,
         port=unused_tcp_port,
         xdisploc=given_xdisploc,

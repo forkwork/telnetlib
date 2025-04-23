@@ -75,7 +75,7 @@ else:
             """
             Return copy of 'mode' with changes suggested for telnet connection.
             """
-            from telnetlib3.telopt import ECHO
+            from telnetlib.telopt import ECHO
 
             if not self.telnet_writer.will_echo:
                 # return mode as-is

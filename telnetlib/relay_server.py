@@ -10,9 +10,9 @@ from .accessories import make_reader_task
 async def relay_shell(client_reader, client_writer):
     """
     An example 'telnet relay shell', appropriate for use with
-    telnetlib3.create_server, run command::
+    telnetlib.create_server, run command::
 
-        telnetlib3 --shell telnetlib3.relay_server.relay_shell
+        telnetlib --shell telnetlib.relay_server.relay_shell
 
     This relay service is very basic, it still needs to somehow forward the TERM
     type and environment variable of value COLORTERM

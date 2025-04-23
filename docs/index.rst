@@ -1,5 +1,5 @@
 ==========
-telnetlib3
+telnetlib
 ==========
 
 Python 3 asyncio Telnet server and client Protocol library.

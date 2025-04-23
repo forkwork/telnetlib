@@ -6,8 +6,8 @@ import string
 import pytest
 
 # local
-import telnetlib3
-from telnetlib3.tests.accessories import unused_tcp_port, bind_host
+import telnetlib
+from telnetlib.tests.accessories import unused_tcp_port, bind_host
 
 
 def test_reader_instantiation_safety():
@@ -16,7 +16,7 @@ def test_reader_instantiation_safety():
     def fn_encoding(incoming):
         return "def-ENC"
 
-    reader = telnetlib3.TelnetReader(limit=1999)
+    reader = telnetlib.TelnetReader(limit=1999)
 
     # exercise,
     result = repr(reader)
@@ -34,7 +34,7 @@ def test_reader_with_encoding_instantiation_safety():
         "<TelnetReaderUnicode encoding='def-ENC' " "limit=1999 buflen=0 eof=False>"
     )
 
-    reader = telnetlib3.TelnetReaderUnicode(fn_encoding=fn_encoding, limit=1999)
+    reader = telnetlib.TelnetReaderUnicode(fn_encoding=fn_encoding, limit=1999)
 
     # exercise,
     result = repr(reader)
@@ -46,7 +46,7 @@ def test_reader_with_encoding_instantiation_safety():
 def test_reader_eof_safety():
     """Check side-effects of feed_eof."""
     # given,
-    reader = telnetlib3.TelnetReader(limit=1999)
+    reader = telnetlib.TelnetReader(limit=1999)
     reader.feed_eof()
 
     # exercise,
@@ -65,7 +65,7 @@ def test_reader_unicode_eof_safety():
         "<TelnetReaderUnicode encoding='def-ENC' " "limit=65536 buflen=0 eof=True>"
     )
 
-    reader = telnetlib3.TelnetReaderUnicode(fn_encoding=fn_encoding)
+    reader = telnetlib.TelnetReaderUnicode(fn_encoding=fn_encoding)
     reader.feed_eof()
 
     # exercise,
@@ -96,11 +96,11 @@ async def test_telnet_reader_using_readline_unicode(bind_host, unused_tcp_port):
             writer.write(item)
         writer.close()
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         host=bind_host, port=unused_tcp_port, connect_maxwait=0.05, shell=shell
     )
 
-    client_reader, client_writer = await telnetlib3.open_connection(
+    client_reader, client_writer = await telnetlib.open_connection(
         host=bind_host, port=unused_tcp_port, connect_minwait=0.05
     )
 
@@ -139,7 +139,7 @@ async def test_telnet_reader_using_readline_bytes(bind_host, unused_tcp_port):
             writer.write(item)
         writer.close()
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         host=bind_host,
         port=unused_tcp_port,
         connect_maxwait=0.05,
@@ -147,7 +147,7 @@ async def test_telnet_reader_using_readline_bytes(bind_host, unused_tcp_port):
         encoding=False,
     )
 
-    client_reader, client_writer = await telnetlib3.open_connection(
+    client_reader, client_writer = await telnetlib.open_connection(
         host=bind_host, port=unused_tcp_port, connect_minwait=0.05, encoding=False
     )
 
@@ -177,11 +177,11 @@ async def test_telnet_reader_read_exactly_unicode(bind_host, unused_tcp_port):
         writer.write(given_partial)
         writer.close()
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         host=bind_host, port=unused_tcp_port, connect_maxwait=0.05, shell=shell
     )
 
-    client_reader, client_writer = await telnetlib3.open_connection(
+    client_reader, client_writer = await telnetlib.open_connection(
         host=bind_host, port=unused_tcp_port, connect_minwait=0.05
     )
 
@@ -211,7 +211,7 @@ async def test_telnet_reader_read_exactly_bytes(bind_host, unused_tcp_port):
         writer.write(given + given_partial)
         writer.close()
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         host=bind_host,
         port=unused_tcp_port,
         connect_maxwait=0.05,
@@ -219,7 +219,7 @@ async def test_telnet_reader_read_exactly_bytes(bind_host, unused_tcp_port):
         encoding=False,
     )
 
-    client_reader, client_writer = await telnetlib3.open_connection(
+    client_reader, client_writer = await telnetlib.open_connection(
         host=bind_host, port=unused_tcp_port, connect_minwait=0.05, encoding=False
     )
 
@@ -244,7 +244,7 @@ async def test_telnet_reader_read_0(bind_host, unused_tcp_port):
     def fn_encoding(incoming):
         return "def-ENC"
 
-    reader = telnetlib3.TelnetReaderUnicode(fn_encoding=fn_encoding)
+    reader = telnetlib.TelnetReaderUnicode(fn_encoding=fn_encoding)
 
     # exercise
     value = await reader.read(0)
@@ -266,7 +266,7 @@ async def test_telnet_reader_read_beyond_limit_unicode(bind_host, unused_tcp_por
         writer.write(given)
         writer.close()
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         host=bind_host,
         port=unused_tcp_port,
         connect_maxwait=0.05,
@@ -274,7 +274,7 @@ async def test_telnet_reader_read_beyond_limit_unicode(bind_host, unused_tcp_por
         limit=limit,
     )
 
-    client_reader, client_writer = await telnetlib3.open_connection(
+    client_reader, client_writer = await telnetlib.open_connection(
         host=bind_host, port=unused_tcp_port, connect_minwait=0.05, limit=limit
     )
 
@@ -296,7 +296,7 @@ async def test_telnet_reader_read_beyond_limit_bytes(bind_host, unused_tcp_port)
         writer.write(given)
         writer.close()
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         host=bind_host,
         port=unused_tcp_port,
         connect_maxwait=0.05,
@@ -305,7 +305,7 @@ async def test_telnet_reader_read_beyond_limit_bytes(bind_host, unused_tcp_port)
         limit=limit,
     )
 
-    client_reader, client_writer = await telnetlib3.open_connection(
+    client_reader, client_writer = await telnetlib.open_connection(
         host=bind_host,
         port=unused_tcp_port,
         connect_minwait=0.05,

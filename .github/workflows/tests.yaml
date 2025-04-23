@@ -1,4 +1,4 @@
-name: Run telnetlib3 tests
+name: Run telnetlib tests
 
 on: [push]
 

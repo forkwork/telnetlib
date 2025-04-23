@@ -1,4 +1,4 @@
-"""telnetlib3: an asyncio Telnet Protocol implemented in python."""
+"""telnetlib: an asyncio Telnet Protocol implemented in python."""
 # pylint: disable=wildcard-import,undefined-variable
 from .server_base import *  # noqa
 from .server_shell import *  # noqa
@@ -26,7 +26,7 @@ __all__ = (
 )  # noqa
 
 __author__ = "Jeff Quast"
-__url__ = "https://github.com/jquast/telnetlib3/"
+__url__ = "https://github.com/jquast/telnetlib/"
 __copyright__ = "Copyright 2013"
 __credits__ = ["Jim Storch", "Wijnand Modderman-Lenstra"]
 __license__ = "ISC"

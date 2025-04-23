@@ -3,9 +3,9 @@
 import asyncio
 
 # local imports
-import telnetlib3
-import telnetlib3.stream_writer
-from telnetlib3.tests.accessories import unused_tcp_port, bind_host
+import telnetlib
+import telnetlib.stream_writer
+from telnetlib.tests.accessories import unused_tcp_port, bind_host
 
 # 3rd party
 import pytest
@@ -14,16 +14,16 @@ import pytest
 async def test_telnet_server_on_ttype(bind_host, unused_tcp_port):
     """Test Server's callback method on_ttype()."""
     # given
-    from telnetlib3.telopt import IAC, WILL, SB, SE, IS, TTYPE
+    from telnetlib.telopt import IAC, WILL, SB, SE, IS, TTYPE
 
     _waiter = asyncio.Future()
 
-    class ServerTestTtype(telnetlib3.TelnetServer):
+    class ServerTestTtype(telnetlib.TelnetServer):
         def on_ttype(self, ttype):
             super().on_ttype(ttype)
             _waiter.set_result(self)
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         protocol_factory=ServerTestTtype, host=bind_host, port=unused_tcp_port
     )
 
@@ -51,7 +51,7 @@ async def test_telnet_server_on_ttype_beyond_max(bind_host, unused_tcp_port):
     an infinite loop with a distant end that is not conforming.
     """
     # given
-    from telnetlib3.telopt import IAC, WILL, SB, SE, IS, TTYPE
+    from telnetlib.telopt import IAC, WILL, SB, SE, IS, TTYPE
 
     _waiter = asyncio.Future()
     given_ttypes = (
@@ -69,13 +69,13 @@ async def test_telnet_server_on_ttype_beyond_max(bind_host, unused_tcp_port):
         "MU",
     )
 
-    class ServerTestTtype(telnetlib3.TelnetServer):
+    class ServerTestTtype(telnetlib.TelnetServer):
         def on_ttype(self, ttype):
             super().on_ttype(ttype)
             if ttype == given_ttypes[-1]:
                 _waiter.set_result(self)
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         protocol_factory=ServerTestTtype, host=bind_host, port=unused_tcp_port
     )
 
@@ -88,14 +88,14 @@ async def test_telnet_server_on_ttype_beyond_max(bind_host, unused_tcp_port):
 
     # verify,
     srv_instance = await asyncio.wait_for(_waiter, 0.5)
-    for idx in range(telnetlib3.TelnetServer.TTYPE_LOOPMAX):
+    for idx in range(telnetlib.TelnetServer.TTYPE_LOOPMAX):
         key = "ttype{0}".format(idx + 1)
         expected = given_ttypes[idx]
         assert srv_instance.get_extra_info(key) == expected, (idx, key)
 
     # ttype{max} gets overwritten continiously, so the last given
     # ttype is the last value.
-    key = "ttype{0}".format(telnetlib3.TelnetServer.TTYPE_LOOPMAX + 1)
+    key = "ttype{0}".format(telnetlib.TelnetServer.TTYPE_LOOPMAX + 1)
     expected = given_ttypes[-1]
     assert srv_instance.get_extra_info(key) == expected, (idx, key)
     assert srv_instance.get_extra_info("TERM") == given_ttypes[-1]
@@ -104,18 +104,18 @@ async def test_telnet_server_on_ttype_beyond_max(bind_host, unused_tcp_port):
 async def test_telnet_server_on_ttype_empty(bind_host, unused_tcp_port):
     """Test Server's callback method on_ttype(): empty value is ignored. """
     # given
-    from telnetlib3.telopt import IAC, WILL, SB, SE, IS, TTYPE
+    from telnetlib.telopt import IAC, WILL, SB, SE, IS, TTYPE
 
     _waiter = asyncio.Future()
     given_ttypes = ("ALPHA", "", "BETA")
 
-    class ServerTestTtype(telnetlib3.TelnetServer):
+    class ServerTestTtype(telnetlib.TelnetServer):
         def on_ttype(self, ttype):
             super().on_ttype(ttype)
             if ttype == given_ttypes[-1]:
                 _waiter.set_result(self)
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         protocol_factory=ServerTestTtype, host=bind_host, port=unused_tcp_port
     )
 
@@ -136,12 +136,12 @@ async def test_telnet_server_on_ttype_empty(bind_host, unused_tcp_port):
 async def test_telnet_server_on_ttype_looped(bind_host, unused_tcp_port):
     """Test Server's callback method on_ttype() when value looped. """
     # given
-    from telnetlib3.telopt import IAC, WILL, SB, SE, IS, TTYPE
+    from telnetlib.telopt import IAC, WILL, SB, SE, IS, TTYPE
 
     _waiter = asyncio.Future()
     given_ttypes = ("ALPHA", "BETA", "GAMMA", "ALPHA")
 
-    class ServerTestTtype(telnetlib3.TelnetServer):
+    class ServerTestTtype(telnetlib.TelnetServer):
         count = 1
 
         def on_ttype(self, ttype):
@@ -150,7 +150,7 @@ async def test_telnet_server_on_ttype_looped(bind_host, unused_tcp_port):
                 _waiter.set_result(self)
             self.count += 1
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         protocol_factory=ServerTestTtype, host=bind_host, port=unused_tcp_port
     )
 
@@ -173,12 +173,12 @@ async def test_telnet_server_on_ttype_looped(bind_host, unused_tcp_port):
 async def test_telnet_server_on_ttype_repeated(bind_host, unused_tcp_port):
     """Test Server's callback method on_ttype() when value repeats. """
     # given
-    from telnetlib3.telopt import IAC, WILL, SB, SE, IS, TTYPE
+    from telnetlib.telopt import IAC, WILL, SB, SE, IS, TTYPE
 
     _waiter = asyncio.Future()
     given_ttypes = ("ALPHA", "BETA", "GAMMA", "GAMMA")
 
-    class ServerTestTtype(telnetlib3.TelnetServer):
+    class ServerTestTtype(telnetlib.TelnetServer):
         count = 1
 
         def on_ttype(self, ttype):
@@ -187,7 +187,7 @@ async def test_telnet_server_on_ttype_repeated(bind_host, unused_tcp_port):
                 _waiter.set_result(self)
             self.count += 1
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         protocol_factory=ServerTestTtype, host=bind_host, port=unused_tcp_port
     )
 
@@ -210,12 +210,12 @@ async def test_telnet_server_on_ttype_repeated(bind_host, unused_tcp_port):
 async def test_telnet_server_on_ttype_mud(bind_host, unused_tcp_port):
     """Test Server's callback method on_ttype() for MUD clients (MTTS). """
     # given
-    from telnetlib3.telopt import IAC, WILL, SB, SE, IS, TTYPE
+    from telnetlib.telopt import IAC, WILL, SB, SE, IS, TTYPE
 
     _waiter = asyncio.Future()
     given_ttypes = ("ALPHA", "BETA", "MTTS 137")
 
-    class ServerTestTtype(telnetlib3.TelnetServer):
+    class ServerTestTtype(telnetlib.TelnetServer):
         count = 1
 
         def on_ttype(self, ttype):
@@ -224,7 +224,7 @@ async def test_telnet_server_on_ttype_mud(bind_host, unused_tcp_port):
                 _waiter.set_result(self)
             self.count += 1
 
-    await telnetlib3.create_server(
+    await telnetlib.create_server(
         protocol_factory=ServerTestTtype, host=bind_host, port=unused_tcp_port
     )
 

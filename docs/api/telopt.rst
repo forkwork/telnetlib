@@ -1,5 +1,5 @@
 telopt
 ------
 
-.. automodule:: telnetlib3.telopt
+.. automodule:: telnetlib.telopt
    :members:

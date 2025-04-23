@@ -1,5 +1,5 @@
 client
 ------
 
-.. automodule:: telnetlib3.client
+.. automodule:: telnetlib.client
    :members:
